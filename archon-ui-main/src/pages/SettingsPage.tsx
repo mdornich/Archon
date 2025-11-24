@@ -8,19 +8,19 @@ import {
   Key,
   Brain,
   Code,
-  Activity,
   FileCode,
   Bug,
+  Info,
+  Database,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useToast } from "../contexts/ToastContext";
+import { useToast } from "../features/shared/hooks/useToast";
 import { useSettings } from "../contexts/SettingsContext";
 import { useStaggeredEntrance } from "../hooks/useStaggeredEntrance";
 import { FeaturesSection } from "../components/settings/FeaturesSection";
 import { APIKeysSection } from "../components/settings/APIKeysSection";
 import { RAGSettings } from "../components/settings/RAGSettings";
 import { CodeExtractionSettings } from "../components/settings/CodeExtractionSettings";
-import { TestStatus } from "../components/settings/TestStatus";
 import { IDEGlobalRules } from "../components/settings/IDEGlobalRules";
 import { ButtonPlayground } from "../components/settings/ButtonPlayground";
 import { CollapsibleSettingsCard } from "../components/ui/CollapsibleSettingsCard";
@@ -30,6 +30,9 @@ import {
   RagSettings,
   CodeExtractionSettings as CodeExtractionSettingsType,
 } from "../services/credentialsService";
+import { UpdateBanner } from "../features/settings/version/components/UpdateBanner";
+import { VersionStatusCard } from "../features/settings/version/components/VersionStatusCard";
+import { MigrationStatusCard } from "../features/settings/migrations/components/MigrationStatusCard";
 
 export const SettingsPage = () => {
   const [ragSettings, setRagSettings] = useState<RagSettings>({
@@ -108,6 +111,9 @@ export const SettingsPage = () => {
       variants={containerVariants}
       className="w-full"
     >
+      {/* Update Banner */}
+      <UpdateBanner />
+
       {/* Header */}
       <motion.div
         className="flex justify-between items-center mb-8"
@@ -138,6 +144,33 @@ export const SettingsPage = () => {
               <FeaturesSection />
             </CollapsibleSettingsCard>
           </motion.div>
+
+          {/* Version Status */}
+          <motion.div variants={itemVariants}>
+            <CollapsibleSettingsCard
+              title="Version & Updates"
+              icon={Info}
+              accentColor="blue"
+              storageKey="version-status"
+              defaultExpanded={true}
+            >
+              <VersionStatusCard />
+            </CollapsibleSettingsCard>
+          </motion.div>
+
+          {/* Migration Status */}
+          <motion.div variants={itemVariants}>
+            <CollapsibleSettingsCard
+              title="Database Migrations"
+              icon={Database}
+              accentColor="purple"
+              storageKey="migration-status"
+              defaultExpanded={false}
+            >
+              <MigrationStatusCard />
+            </CollapsibleSettingsCard>
+          </motion.div>
+
           {projectsEnabled && (
             <motion.div variants={itemVariants}>
               <CollapsibleSettingsCard
@@ -151,17 +184,6 @@ export const SettingsPage = () => {
               </CollapsibleSettingsCard>
             </motion.div>
           )}
-          <motion.div variants={itemVariants}>
-            <CollapsibleSettingsCard
-              title="Test Status"
-              icon={Activity}
-              accentColor="cyan"
-              storageKey="test-status"
-              defaultExpanded={true}
-            >
-              <TestStatus />
-            </CollapsibleSettingsCard>
-          </motion.div>
         </div>
 
         {/* Right Column */}
@@ -217,8 +239,7 @@ export const SettingsPage = () => {
             >
               <div className="space-y-4">
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Found a bug or issue? Report it to help improve Archon V2
-                  Alpha.
+                  Found a bug or issue? Report it to help improve Archon Beta.
                 </p>
                 <div className="flex justify-start">
                   <BugReportButton variant="secondary" size="md">

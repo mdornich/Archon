@@ -2,8 +2,8 @@
 Environment configuration management for the MCP server.
 """
 
-import os
 import ipaddress
+import os
 from dataclasses import dataclass
 from urllib.parse import urlparse
 
@@ -38,6 +38,23 @@ class RAGStrategyConfig:
     use_reranking: bool = True
 
 
+@dataclass
+class MCPMonitoringConfig:
+    """Configuration for MCP server monitoring strategy.
+
+    Controls how archon-server monitors MCP server status - via HTTP health checks
+    (secure, default) or Docker socket (legacy, security risk).
+
+    Attributes:
+        enable_docker_socket: Whether to use Docker socket for container status.
+                            Default False for security (uses HTTP health checks).
+        health_check_timeout: Timeout in seconds for HTTP health check requests.
+    """
+
+    enable_docker_socket: bool = False
+    health_check_timeout: int = 5
+
+
 def validate_openai_api_key(api_key: str) -> bool:
     """Validate OpenAI API key format."""
     if not api_key:
@@ -67,15 +84,15 @@ def validate_supabase_key(supabase_key: str) -> tuple[bool, str]:
         # We don't verify the signature since we only need to check the role
         # Also skip all other validations (aud, exp, etc) since we only care about the role
         decoded = jwt.decode(
-            supabase_key, 
-            '', 
+            supabase_key,
+            "",
             options={
                 "verify_signature": False,
                 "verify_aud": False,
                 "verify_exp": False,
                 "verify_nbf": False,
-                "verify_iat": False
-            }
+                "verify_iat": False,
+            },
         )
         role = decoded.get("role")
 
@@ -101,22 +118,22 @@ def validate_supabase_url(url: str) -> bool:
     # Allow HTTP for local development (host.docker.internal or localhost)
     if parsed.scheme not in ("http", "https"):
         raise ConfigurationError("Supabase URL must use HTTP or HTTPS")
-    
+
     # Require HTTPS for production (non-local) URLs
     if parsed.scheme == "http":
         hostname = parsed.hostname or ""
-        
+
         # Check for exact localhost and Docker internal hosts (security: prevent subdomain bypass)
         local_hosts = ["localhost", "127.0.0.1", "host.docker.internal"]
         if hostname in local_hosts or hostname.endswith(".localhost"):
             return True
-            
+
         # Check if hostname is a private IP address
         try:
             ip = ipaddress.ip_address(hostname)
             # Allow HTTP for private IP addresses (RFC 1918)
             # Class A: 10.0.0.0/8
-            # Class B: 172.16.0.0/12  
+            # Class B: 172.16.0.0/12
             # Class C: 192.168.0.0/16
             # Also includes link-local (169.254.0.0/16) and loopback
             # Exclude unspecified address (0.0.0.0) for security
@@ -125,7 +142,7 @@ def validate_supabase_url(url: str) -> bool:
         except ValueError:
             # hostname is not a valid IP address, could be a domain name
             pass
-            
+
         # If not a local host or private IP, require HTTPS
         raise ConfigurationError(f"Supabase URL must use HTTPS for non-local environments (hostname: {hostname})")
 
@@ -231,4 +248,30 @@ def get_rag_strategy_config() -> RAGStrategyConfig:
         use_hybrid_search=str_to_bool(os.getenv("USE_HYBRID_SEARCH")),
         use_agentic_rag=str_to_bool(os.getenv("USE_AGENTIC_RAG")),
         use_reranking=str_to_bool(os.getenv("USE_RERANKING")),
+    )
+
+
+def get_mcp_monitoring_config() -> MCPMonitoringConfig:
+    """Load MCP monitoring configuration from environment variables.
+
+    Environment Variables:
+        ENABLE_DOCKER_SOCKET_MONITORING: "true"/"false" (default: false)
+            Controls whether to use Docker socket for status monitoring.
+            Default is false for security (uses HTTP health checks instead).
+        MCP_HEALTH_CHECK_TIMEOUT: Timeout in seconds (default: 5)
+            Timeout for HTTP health check requests to MCP server.
+
+    Returns:
+        MCPMonitoringConfig with parsed settings.
+    """
+
+    def str_to_bool(value: str | None) -> bool:
+        """Convert string environment variable to boolean."""
+        if value is None:
+            return False
+        return value.lower() in ("true", "1", "yes", "on")
+
+    return MCPMonitoringConfig(
+        enable_docker_socket=str_to_bool(os.getenv("ENABLE_DOCKER_SOCKET_MONITORING")),
+        health_check_timeout=int(os.getenv("MCP_HEALTH_CHECK_TIMEOUT", "5")),
     )

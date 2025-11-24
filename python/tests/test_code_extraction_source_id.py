@@ -27,7 +27,7 @@ class TestCodeExtractionSourceId:
         # Track what gets passed to the internal extraction method
         extracted_blocks = []
         
-        async def mock_extract_blocks(crawl_results, source_id, progress_callback=None, start=0, end=100):
+        async def mock_extract_blocks(crawl_results, source_id, progress_callback=None, start=0, end=100, cancellation_check=None):
             # Simulate finding code blocks and verify source_id is passed correctly
             for doc in crawl_results:
                 extracted_blocks.append({
@@ -64,9 +64,7 @@ class TestCodeExtractionSourceId:
             crawl_results,
             url_to_full_document,
             correct_source_id,
-            None,
-            0,
-            100
+            None
         )
         
         # Verify that extracted blocks use the correct source_id
@@ -102,20 +100,19 @@ class TestCodeExtractionSourceId:
             crawl_results,
             url_to_full_document,
             source_id,
-            None,
-            0,
-            100
+            None
         )
         
-        # Verify the correct source_id was passed
-        mock_extract.assert_called_once_with(
-            crawl_results,
-            url_to_full_document,
-            source_id,  # This should be the third argument
-            None,
-            0,
-            100
-        )
+        # Verify the correct source_id was passed (now with cancellation_check parameter)
+        mock_extract.assert_called_once()
+        args, kwargs = mock_extract.call_args
+        assert args[0] == crawl_results
+        assert args[1] == url_to_full_document
+        assert args[2] == source_id
+        assert args[3] is None
+        assert args[4] is None
+        assert args[5] is None
+        assert args[6] is None
         assert result == 5
 
     @pytest.mark.asyncio
@@ -133,7 +130,7 @@ class TestCodeExtractionSourceId:
         source_ids_seen = []
         
         original_extract = code_service._extract_code_blocks_from_documents
-        async def track_source_id(crawl_results, source_id, progress_callback=None, start=0, end=100):
+        async def track_source_id(crawl_results, source_id, progress_callback=None, cancellation_check=None):
             source_ids_seen.append(source_id)
             return []  # Return empty list to skip further processing
         
@@ -156,9 +153,7 @@ class TestCodeExtractionSourceId:
                 crawl_results,
                 url_to_full_document,
                 expected_source_id,
-                None,
-                0,
-                100
+                None
             )
             
             # Verify the provided source_id was used

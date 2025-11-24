@@ -2,6 +2,7 @@
 import path from "path";
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 import { exec } from 'child_process';
 import { readFile } from 'fs/promises';
 import { existsSync, mkdirSync } from 'fs';
@@ -18,11 +19,14 @@ export default defineConfig(({ mode }: ConfigEnv): UserConfig => {
   const isDocker = process.env.DOCKER_ENV === 'true' || existsSync('/.dockerenv');
   const internalHost = 'archon-server';  // Docker service name for internal communication
   const externalHost = process.env.HOST || 'localhost';  // Host for external access
+  // CRITICAL: For proxy target, always use internal host in Docker
+  const proxyHost = isDocker ? internalHost : externalHost;
   const host = isDocker ? internalHost : externalHost;
   const port = process.env.ARCHON_SERVER_PORT || env.ARCHON_SERVER_PORT || '8181';
   
   return {
     plugins: [
+      tailwindcss(),
       react(),
       // Custom plugin to add test endpoint
       {
@@ -290,33 +294,110 @@ export default defineConfig(({ mode }: ConfigEnv): UserConfig => {
           : [];
         return [...new Set([...defaultHosts, ...hostFromEnv, ...customHosts])];
       })(),
-      proxy: {
-        '/api': {
-          target: `http://${host}:${port}`,
+      proxy: (() => {
+        const proxyConfig: Record<string, any> = {};
+        
+        // Check if agent work orders service should be enabled
+        // This can be disabled via environment variable to prevent hard dependency
+        const agentWorkOrdersEnabled = env.AGENT_WORK_ORDERS_ENABLED !== 'false';
+        const agentWorkOrdersPort = env.AGENT_WORK_ORDERS_PORT || '8053';
+        
+        // Agent Work Orders API proxy (must come before general /api if enabled)
+        if (agentWorkOrdersEnabled) {
+          proxyConfig['/api/agent-work-orders'] = {
+            target: isDocker ? `http://archon-agent-work-orders:${agentWorkOrdersPort}` : `http://localhost:${agentWorkOrdersPort}`,
           changeOrigin: true,
           secure: false,
-          ws: true,
-          configure: (proxy, options) => {
-            proxy.on('error', (err, req, res) => {
+            timeout: 10000, // 10 second timeout
+            configure: (proxy: any, options: any) => {
+              const targetUrl = isDocker ? `http://archon-agent-work-orders:${agentWorkOrdersPort}` : `http://localhost:${agentWorkOrdersPort}`;
+              
+              // Handle proxy errors (e.g., service is down)
+              proxy.on('error', (err: Error, req: any, res: any) => {
+              console.log('🚨 [VITE PROXY ERROR - Agent Work Orders]:', err.message);
+              console.log('🚨 [VITE PROXY ERROR] Target:', targetUrl);
+              console.log('🚨 [VITE PROXY ERROR] Request:', req.url);
+                
+                // Send proper error response instead of hanging
+                if (!res.headersSent) {
+                  res.writeHead(503, {
+                    'Content-Type': 'application/json',
+                    'X-Service-Unavailable': 'agent-work-orders'
+                  });
+                  res.end(JSON.stringify({
+                    error: 'Service Unavailable',
+                    message: 'Agent Work Orders service is not available',
+                    service: 'agent-work-orders',
+                    target: targetUrl
+                  }));
+                }
+              });
+              
+              // Handle connection timeout
+              proxy.on('proxyReq', (proxyReq: any, req: any, res: any) => {
+              console.log('🔄 [VITE PROXY - Agent Work Orders] Forwarding:', req.method, req.url, 'to', `${targetUrl}${req.url}`);
+                
+                // Set timeout for the proxy request
+                proxyReq.setTimeout(10000, () => {
+                  console.log('⏱️ [VITE PROXY - Agent Work Orders] Request timeout');
+                  if (!res.headersSent) {
+                    res.writeHead(504, {
+                      'Content-Type': 'application/json',
+                      'X-Service-Unavailable': 'agent-work-orders'
+                    });
+                    res.end(JSON.stringify({
+                      error: 'Gateway Timeout',
+                      message: 'Agent Work Orders service did not respond in time',
+                      service: 'agent-work-orders',
+                      target: targetUrl
+                    }));
+                  }
+                });
+              });
+            }
+          };
+        } else {
+          console.log('⚠️ [VITE PROXY] Agent Work Orders proxy disabled via AGENT_WORK_ORDERS_ENABLED=false');
+        }
+        
+        // General /api proxy (always enabled, comes after specific routes if agent work orders is enabled)
+        proxyConfig['/api'] = {
+          target: `http://${proxyHost}:${port}`,
+          changeOrigin: true,
+          secure: false,
+          configure: (proxy: any, options: any) => {
+            proxy.on('error', (err: Error, req: any, res: any) => {
               console.log('🚨 [VITE PROXY ERROR]:', err.message);
-              console.log('🚨 [VITE PROXY ERROR] Target:', `http://${host}:${port}`);
+              console.log('🚨 [VITE PROXY ERROR] Target:', `http://${proxyHost}:${port}`);
               console.log('🚨 [VITE PROXY ERROR] Request:', req.url);
             });
-            proxy.on('proxyReq', (proxyReq, req, res) => {
-              console.log('🔄 [VITE PROXY] Forwarding:', req.method, req.url, 'to', `http://${host}:${port}${req.url}`);
+            proxy.on('proxyReq', (proxyReq: any, req: any, res: any) => {
+              console.log('🔄 [VITE PROXY] Forwarding:', req.method, req.url, 'to', `http://${proxyHost}:${port}${req.url}`);
             });
           }
-        },
+        };
+        
+        // Health check endpoint proxy
+        proxyConfig['/health'] = {
+          target: `http://${host}:${port}`,
+          changeOrigin: true,
+          secure: false
+        };
+        
         // Socket.IO specific proxy configuration
-        '/socket.io': {
+        proxyConfig['/socket.io'] = {
           target: `http://${host}:${port}`,
           changeOrigin: true,
           ws: true
-        }
-      },
+        };
+        
+        return proxyConfig;
+      })(),
     },
     define: {
-      'import.meta.env.VITE_HOST': JSON.stringify(host),
+      // CRITICAL: Don't inject Docker internal hostname into the build
+      // The browser can't resolve 'archon-server'
+      'import.meta.env.VITE_HOST': JSON.stringify(isDocker ? 'localhost' : host),
       'import.meta.env.VITE_PORT': JSON.stringify(port),
       'import.meta.env.PROD': env.PROD === 'true',
     },
@@ -328,15 +409,18 @@ export default defineConfig(({ mode }: ConfigEnv): UserConfig => {
     test: {
       globals: true,
       environment: 'jsdom',
-      setupFiles: './test/setup.ts',
+      setupFiles: './tests/setup.ts',
       css: true,
+      include: [
+        'src/**/*.{test,spec}.{ts,tsx}',  // Tests colocated in features
+        'tests/**/*.{test,spec}.{ts,tsx}'  // Tests in tests directory
+      ],
       exclude: [
         '**/node_modules/**',
         '**/dist/**',
         '**/cypress/**',
         '**/.{idea,git,cache,output,temp}/**',
-        '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*',
-        '**/*.test.{ts,tsx}',
+        '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*'
       ],
       env: {
         VITE_HOST: host,
@@ -347,7 +431,7 @@ export default defineConfig(({ mode }: ConfigEnv): UserConfig => {
         reporter: ['text', 'json', 'html'],
         exclude: [
           'node_modules/',
-          'test/',
+          'tests/',
           '**/*.d.ts',
           '**/*.config.*',
           '**/mockData.ts',
