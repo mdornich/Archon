@@ -315,11 +315,9 @@ Create feature-level tasks:
 try:
     logger.info("🏗️ MCP SERVER INITIALIZATION:")
     logger.info("   Server Name: archon-mcp-server")
-    logger.info("   Description: MCP server using HTTP calls")
 
     mcp = FastMCP(
         "archon-mcp-server",
-        description="MCP server for Archon - uses HTTP calls to other services",
         instructions=MCP_INSTRUCTIONS,
         lifespan=lifespan,
         host=server_host,

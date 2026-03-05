@@ -150,6 +150,7 @@ jobs:
     runs-on: ubuntu-latest
     
     strategy:
+      fail-fast: false
       matrix:
         service: [server, mcp, agents, frontend]
         
@@ -259,25 +260,15 @@ jobs:
           
           # Frontend Results
           echo "## 🎨 Frontend Tests (React + Vitest)" >> $GITHUB_STEP_SUMMARY
-          if [ -f "frontend-test-results/coverage/test-results.json" ]; then
-            echo "✅ Frontend tests completed" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ Frontend tests failed or incomplete" >> $GITHUB_STEP_SUMMARY
-          fi
+          echo "⏭️ Frontend tests are currently disabled (pending overhaul)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
+
           # Backend Results
           echo "## 🐍 Backend Tests (Python + pytest)" >> $GITHUB_STEP_SUMMARY
-          if [ -d "backend-test-results-unit" ]; then
-            echo "✅ Unit tests completed" >> $GITHUB_STEP_SUMMARY
+          if [ -d "backend-test-results" ]; then
+            echo "✅ Backend tests completed" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ Unit tests failed or incomplete" >> $GITHUB_STEP_SUMMARY
-          fi
-          
-          if [ -d "backend-test-results-integration" ]; then
-            echo "✅ Integration tests completed" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ Integration tests failed or incomplete" >> $GITHUB_STEP_SUMMARY
+            echo "❌ Backend tests failed or incomplete" >> $GITHUB_STEP_SUMMARY
           fi
           echo "" >> $GITHUB_STEP_SUMMARY
           

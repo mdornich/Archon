@@ -74,7 +74,7 @@ class RagAgent(BaseAgent[RagDependencies, str]):
         agent = Agent(
             model=self.model,
             deps_type=RagDependencies,
-            system_prompt="""You are a RAG (Retrieval-Augmented Generation) Assistant that helps users search and understand documentation through conversation.
+            instructions="""You are a RAG (Retrieval-Augmented Generation) Assistant that helps users search and understand documentation through conversation.
 
 **Your Capabilities:**
 - Search through crawled documentation using semantic search
@@ -112,8 +112,8 @@ class RagAgent(BaseAgent[RagDependencies, str]):
             **kwargs,
         )
 
-        # Register dynamic system prompt for context
-        @agent.system_prompt
+        # Register dynamic instructions for context
+        @agent.instructions
         async def add_search_context(ctx: RunContext[RagDependencies]) -> str:
             source_info = (
                 f"Source Filter: {ctx.deps.source_filter}"

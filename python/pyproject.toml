@@ -44,7 +44,7 @@ server = [
     "supabase==2.15.1",
     "asyncpg>=0.29.0",
     # AI/ML libraries
-    "openai==1.71.0",
+    "openai>=2.11.0",
     # Document processing
     "pypdf2>=3.0.1",
     "pdfplumber>=0.11.6",
@@ -79,7 +79,7 @@ server-reranking = [
 
 # MCP container dependencies
 mcp = [
-    "mcp==1.23.0",
+    "mcp>=1.25.0",
     "httpx>=0.24.0",
     "pydantic>=2.0.0",
     "python-dotenv>=1.0.0",
@@ -90,7 +90,7 @@ mcp = [
 
 # Agents container dependencies (ML/reranking service)
 agents = [
-    "pydantic-ai>=0.0.13",
+    "pydantic-ai-slim[openai]>=1.56.0",
     "pydantic>=2.0.0",
     "fastapi>=0.104.0",
     "uvicorn>=0.24.0",
@@ -122,7 +122,7 @@ all = [
     "crawl4ai==0.8.0",
     "supabase==2.15.1",
     "asyncpg>=0.29.0",
-    "openai==1.71.0",
+    "openai>=2.11.0",
     "pypdf2>=3.0.1",
     "pdfplumber>=0.11.6",
     "python-docx>=1.1.2",
@@ -136,9 +136,9 @@ all = [
     "tldextract>=5.0.0",
     "logfire>=0.30.0",
     # MCP specific (mcp version)
-    "mcp==1.23.0",
+    "mcp>=1.25.0",
     # Agents specific
-    "pydantic-ai>=0.0.13",
+    "pydantic-ai-slim[openai]>=1.56.0",
     "structlog>=23.1.0",
     # Agent Work Orders specific
     "sse-starlette>=2.3.3",
