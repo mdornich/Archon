@@ -411,4 +411,8 @@ export const sqliteDialect: SqlDialect = {
   daysSince(column: string): string {
     return `(julianday('now') - julianday(${column}))`;
   },
+
+  nowMinusMinutes(minutes: number): string {
+    return `datetime('now', '-${String(Math.round(minutes))} minutes')`;
+  },
 };

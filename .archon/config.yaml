@@ -3,3 +3,7 @@ worktree:
 
 docs:
   path: packages/docs-web/src/content/docs
+
+assistants:
+  claude:
+    model: opus

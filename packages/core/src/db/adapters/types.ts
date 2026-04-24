@@ -90,4 +90,11 @@ export interface SqlDialect {
    * @param column - Timestamp column name
    */
   daysSince(column: string): string;
+
+  /**
+   * SQL literal expression for "now minus N minutes" (no parameter binding — value is inlined).
+   * Used for staleness thresholds where the value is a compile-time constant.
+   * @param minutes - Number of minutes to subtract from now
+   */
+  nowMinusMinutes(minutes: number): string;
 }

@@ -94,5 +94,44 @@ network_access = true
   console.log('✅ Codex authentication and configuration complete');
 }
 
-// Run the setup
+function setupGitCredentials(): void {
+  const ghToken = process.env.GH_TOKEN;
+
+  if (!ghToken) {
+    console.log('⏭️  Skipping git credential setup - GH_TOKEN not provided');
+    return;
+  }
+
+  console.log('🔐 Setting up git credentials...');
+
+  const gitConfigResult = Bun.spawnSync([
+    'git',
+    'config',
+    '--global',
+    'credential.helper',
+    'store',
+  ]);
+  if (gitConfigResult.exitCode !== 0) {
+    console.error(
+      `❌ Failed to set git credential.helper: ${gitConfigResult.stderr.toString().trim()}`
+    );
+    process.exit(1);
+  }
+
+  const credentialsPath = path.join(os.homedir(), '.git-credentials');
+  try {
+    fs.writeFileSync(credentialsPath, `https://x-access-token:${ghToken}@github.com\n`, {
+      mode: 0o600,
+    });
+    console.log(`✅ Git credentials configured at: ${credentialsPath}`);
+  } catch (error: unknown) {
+    console.error(`❌ Failed to write .git-credentials: ${String(error)}`);
+    process.exit(1);
+  }
+
+  console.log('✅ Git credential setup complete — all HTTPS GitHub operations will authenticate');
+}
+
+// Run the setup — git credentials first (needed for clone/fetch), then Codex auth
+setupGitCredentials();
 setupAuth();

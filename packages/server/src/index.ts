@@ -62,6 +62,7 @@ import { WebAdapter } from './adapters/web';
 import { MessagePersistence } from './adapters/web/persistence';
 import { SSETransport } from './adapters/web/transport';
 import { WorkflowEventBridge } from './adapters/web/workflow-bridge';
+import { WebhookSubscriber } from './adapters/web/webhook-subscriber';
 import { registerApiRoutes } from './routes/api';
 import {
   handleMessage,
@@ -248,8 +249,10 @@ export async function startServer(opts: ServerOptions = {}): Promise<void> {
     transport.emit(conversationId, event)
   );
   const workflowBridge = new WorkflowEventBridge(transport);
+  const webhookSubscriber = new WebhookSubscriber();
   const webAdapter = new WebAdapter(transport, persistence, workflowBridge);
   await webAdapter.start();
+  webhookSubscriber.start();
   persistence.startPeriodicFlush();
 
   // Mutable — pushed to as each adapter starts, read by the /api/health endpoint.
@@ -658,6 +661,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<void> {
       .then(async () => {
         // Stop adapters (these should not throw, but be defensive)
         try {
+          webhookSubscriber.stop();
           telegram?.stop();
           discord?.stop();
           slack?.stop();

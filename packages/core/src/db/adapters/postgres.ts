@@ -105,4 +105,8 @@ export const postgresDialect: SqlDialect = {
   daysSince(column: string): string {
     return `EXTRACT(EPOCH FROM (NOW() - ${column})) / 86400`;
   },
+
+  nowMinusMinutes(minutes: number): string {
+    return `NOW() - INTERVAL '${String(Math.round(minutes))} minutes'`;
+  },
 };

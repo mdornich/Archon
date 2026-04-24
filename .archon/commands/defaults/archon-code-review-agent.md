@@ -13,6 +13,8 @@ Review the PR for code quality, CLAUDE.md compliance, patterns, and bugs. Produc
 
 **Output artifact**: `$ARTIFACTS_DIR/review/code-review-findings.md`
 
+**Scope Discipline**: Only flag issues in files and code that were **changed in this PR**. Do NOT flag style issues, import ordering, or whitespace in files the PR did not modify. Do NOT flag pre-existing code quality issues in adjacent files. If you notice issues in untouched files, note them in a "Suggested Follow-up Issues" section — never as actionable findings.
+
 ---
 
 ## Phase 1: LOAD - Get Context

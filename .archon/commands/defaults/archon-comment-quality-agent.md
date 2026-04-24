@@ -13,6 +13,8 @@ Analyze code comments for accuracy against actual code, identify comment rot, ch
 
 **Output artifact**: `$ARTIFACTS_DIR/review/comment-quality-findings.md`
 
+**Scope Discipline**: Only flag comment issues in files and code **changed in this PR**. Do not flag pre-existing comment issues in adjacent or untouched files.
+
 ---
 
 ## Phase 1: LOAD - Get Context

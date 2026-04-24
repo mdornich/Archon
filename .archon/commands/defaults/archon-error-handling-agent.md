@@ -13,6 +13,8 @@ Hunt for silent failures, inadequate error handling, broad catch blocks, and ina
 
 **Output artifact**: `$ARTIFACTS_DIR/review/error-handling-findings.md`
 
+**Scope Discipline**: Only flag error handling issues in files and code **changed in this PR**. Do not flag pre-existing issues in adjacent or untouched files. Do not suggest adding dev dependencies.
+
 ---
 
 ## Phase 1: LOAD - Get Context

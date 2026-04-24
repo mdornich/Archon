@@ -13,6 +13,8 @@ Analyze if the PR changes require updates to project documentation: CLAUDE.md, d
 
 **Output artifact**: `$ARTIFACTS_DIR/review/docs-impact-findings.md`
 
+**Scope Discipline**: Only flag documentation needs arising from changes **made in this PR**. Do not flag pre-existing documentation gaps unrelated to the PR's changes.
+
 ---
 
 ## Phase 1: LOAD - Get Context

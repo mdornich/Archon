@@ -903,8 +903,11 @@ export async function updateWorkflowActivity(id: string): Promise<void> {
 }
 
 /**
- * Transition all 'running' workflow runs to 'failed'.
- * Called on server startup to mark runs orphaned by process termination.
+ * Transition stale 'running' workflow runs to 'failed'.
+ * Called on server/CLI startup to mark runs orphaned by process termination.
+ * Only targets runs whose last_activity_at is older than 3 minutes — the
+ * activity heartbeat writes every 60s, so 3 minutes of silence means the
+ * owning process is dead. This avoids killing concurrent live workflows.
  * The next invocation of the same workflow at the same path will auto-resume
  * from completed nodes via findResumableRun.
  */
@@ -916,7 +919,8 @@ export async function failOrphanedRuns(): Promise<{ count: number }> {
        SET status = 'failed',
            completed_at = ${dialect.now()},
            metadata = ${dialect.jsonMerge('metadata', 1)}
-       WHERE status = 'running'`,
+       WHERE status = 'running'
+         AND (last_activity_at IS NOT NULL AND last_activity_at < ${dialect.nowMinusMinutes(3)})`,
       [JSON.stringify({ failure_reason: 'server_restart' })]
     );
     const count = result.rowCount ?? 0;

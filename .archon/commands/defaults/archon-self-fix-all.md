@@ -84,25 +84,34 @@ Compile a unified list of ALL findings with severity, location, and suggested fi
 
 For each finding, decide: **FIX** or **SKIP**.
 
-### FIX (default — lean towards fixing):
+### NEVER (scope discipline — overrides everything below):
 
-- Real bugs, type errors, silent failures, code quality issues
-- Missing tests for changed or existing code touched by the PR
-- Missing or outdated documentation
-- Error handling gaps
-- Comment quality issues
-- Import organization
-- Naming improvements
-- Any finding where the fix is concrete and the code is within the PR's touched area
+These rules are ABSOLUTE. Even if a review agent flagged the issue, do NOT fix it if it violates these rules:
 
-### SKIP only if:
+- Do NOT touch files that were not part of the **original implementation commit(s)**. The original PR diff is your boundary.
+- Do NOT add new dev dependencies (linters, formatters, type checkers, test utilities like pytest-cov, ruff) unless the PR's own code fails without them
+- Do NOT reformat, restyle, change quote styles, add blank lines, or reorganize imports in ANY file — even files in the PR — unless the change fixes a functional bug
+- Do NOT modify migration files (alembic, prisma, knex, etc.) for style reasons
+- Do NOT modify lockfiles (uv.lock, bun.lockb, package-lock.json, yarn.lock) unless adding a dependency the PR's code requires
+- If a review finding targets a file or concern outside the original PR's scope, add it to "Suggested Follow-up Issues" — do not fix it inline
+
+### FIX (default for in-scope findings):
+
+- Real bugs, type errors, silent failures in files the PR changed
+- Missing tests for code the PR added or modified
+- Missing or outdated documentation for the PR's changes
+- Code simplification within the PR's changed files
+- Error handling gaps in the PR's changed code
+- Any finding where the fix is concrete and stays within the PR's changed files
+
+### SKIP if:
 
 - The fix introduces a **genuinely new feature** not related to the PR
 - The fix requires **architectural changes** that affect untouched subsystems
-- The fix is about code **completely unrelated** to the PR's changes
+- The fix targets code **not changed by the PR** (even if a reviewer flagged it)
 - The finding is factually wrong or based on a misunderstanding
 
-**Key principle**: If the review agent found it while reviewing THIS PR, it's fair game to fix. Tests, docs, simplification, error handling — all fixable. The only skip reason is "this is a new concern that deserves its own issue."
+**Key principle**: The PR's changed files are your boundary. Fix everything inside that boundary. Skip everything outside it.
 
 For each skipped finding, write down **the specific reason**.
 

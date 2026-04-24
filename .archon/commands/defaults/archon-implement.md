@@ -17,6 +17,13 @@ Execute the plan end-to-end with rigorous self-validation. You are autonomous.
 
 **Golden Rule**: If a validation fails, fix it before moving on. Never accumulate broken state.
 
+**Scope Discipline**: Only touch files and code directly required by the plan. Do NOT:
+- Reformat, restyle, or reorganize files you didn't need to change for the task
+- Add dev dependencies (linters, formatters, type checkers) unless the plan explicitly requires them
+- Fix lint/style issues in files outside the plan's scope
+- Change import ordering, quote styles, or whitespace in untouched files
+If you notice something worth fixing outside the plan's scope, note it in the implementation report under "Suggested Follow-up Issues" — do not fix it inline.
+
 ---
 
 ## Phase 0: DETECT - Project Environment

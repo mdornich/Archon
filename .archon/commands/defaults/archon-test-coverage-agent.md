@@ -13,6 +13,8 @@ Analyze test coverage for the PR changes. Identify critical gaps, evaluate test 
 
 **Output artifact**: `$ARTIFACTS_DIR/review/test-coverage-findings.md`
 
+**Scope Discipline**: Only flag test coverage gaps for code **changed or added in this PR**. Do not flag missing tests for pre-existing untouched code. Do not suggest adding test dependencies (pytest-cov, coverage tools) unless the PR's own tests require them.
+
 ---
 
 ## Phase 1: LOAD - Get Context
