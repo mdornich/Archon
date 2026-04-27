@@ -114,7 +114,12 @@ export function registerBuiltinProviders(): void {
       capabilities: CLAUDE_CAPABILITIES,
       isModelCompatible: (model: string): boolean => {
         const aliases = ['sonnet', 'opus', 'haiku'];
-        return aliases.includes(model) || model.startsWith('claude-') || model === 'inherit';
+        // Strip optional bracket-suffixed modifiers like [1m] (context-window flag)
+        // so e.g. `opus[1m]` and `claude-opus-4-6[1m]` are recognized as Claude.
+        const baseModel = model.replace(/\[[^\]]+\]$/, '');
+        return (
+          aliases.includes(baseModel) || baseModel.startsWith('claude-') || baseModel === 'inherit'
+        );
       },
       builtIn: true,
     },
@@ -125,8 +130,13 @@ export function registerBuiltinProviders(): void {
       capabilities: CODEX_CAPABILITIES,
       isModelCompatible: (model: string): boolean => {
         const claudeAliases = ['sonnet', 'opus', 'haiku'];
+        // Mirror Claude's stripping so suffixed Claude aliases (e.g. opus[1m])
+        // are correctly excluded from Codex compatibility.
+        const baseModel = model.replace(/\[[^\]]+\]$/, '');
         return (
-          !claudeAliases.includes(model) && !model.startsWith('claude-') && model !== 'inherit'
+          !claudeAliases.includes(baseModel) &&
+          !baseModel.startsWith('claude-') &&
+          baseModel !== 'inherit'
         );
       },
       builtIn: true,
