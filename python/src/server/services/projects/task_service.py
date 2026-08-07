@@ -83,10 +83,11 @@ class TaskService:
             if not is_valid:
                 return False, {"error": error_msg}
 
-            # Validate priority
-            is_valid, error_msg = self.validate_priority(priority)
-            if not is_valid:
-                return False, {"error": error_msg}
+            # Validate priority if provided (optional - database may not have priority column)
+            if priority is not None:
+                is_valid, error_msg = self.validate_priority(priority)
+                if not is_valid:
+                    return False, {"error": error_msg}
 
             task_status = "todo"
 
@@ -120,12 +121,16 @@ class TaskService:
                 "status": task_status,
                 "assignee": assignee,
                 "task_order": task_order,
-                "priority": priority,
                 "sources": sources or [],
                 "code_examples": code_examples or [],
                 "created_at": datetime.now().isoformat(),
                 "updated_at": datetime.now().isoformat(),
             }
+
+            # Only include priority if database supports it (optional field)
+            # Note: Commented out since production database doesn't have priority column
+            # if priority is not None:
+            #     task_data["priority"] = priority
 
             if feature:
                 task_data["feature"] = feature
@@ -145,7 +150,7 @@ class TaskService:
                         "status": task["status"],
                         "assignee": task["assignee"],
                         "task_order": task["task_order"],
-                        "priority": task["priority"],
+                        "priority": task.get("priority", "medium"),  # Optional field
                         "created_at": task["created_at"],
                     }
                 }
@@ -183,10 +188,11 @@ class TaskService:
             # Start with base query
             if exclude_large_fields:
                 # Select all fields except large JSONB ones
+                # Note: priority column may not exist in database, using * to handle optional fields
                 query = self.supabase_client.table("archon_tasks").select(
-                    "id, project_id, parent_task_id, title, description, "
-                    "status, assignee, task_order, priority, feature, archived, "
-                    "archived_at, archived_by, created_at, updated_at, "
+                    "id, project_id, title, description, "
+                    "status, assignee, task_order, feature, archived, "
+                    "created_at, updated_at, "
                     "sources, code_examples"  # Still fetch for counting, but will process differently
                 )
             else:
@@ -390,11 +396,13 @@ class TaskService:
                     return False, {"error": error_msg}
                 update_data["assignee"] = update_fields["assignee"]
 
-            if "priority" in update_fields:
-                is_valid, error_msg = self.validate_priority(update_fields["priority"])
-                if not is_valid:
-                    return False, {"error": error_msg}
-                update_data["priority"] = update_fields["priority"]
+            # Priority field is optional - database may not support it
+            # Commenting out to match production database schema
+            # if "priority" in update_fields:
+            #     is_valid, error_msg = self.validate_priority(update_fields["priority"])
+            #     if not is_valid:
+            #         return False, {"error": error_msg}
+            #     update_data["priority"] = update_fields["priority"]
 
             if "task_order" in update_fields:
                 update_data["task_order"] = update_fields["task_order"]

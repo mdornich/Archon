@@ -323,6 +323,26 @@ When connected to Claude/Cursor/Windsurf, the following tools are available:
 - `archon:find_versions` - Find version history or get specific version
 - `archon:manage_version` - Manage versions with actions: "create", "restore"
 
+## Implementation Standards
+
+- After implementing changes across multiple files, verify ALL code paths are updated - search for every creation/instantiation point, not just the obvious ones. Run grep to find all usages before declaring work complete.
+
+## Code Review
+
+- When asked to verify or review an issue/PR against a spec, always do a deep code-level verification against acceptance criteria - never just check file existence or merge status.
+
+## CI/Testing
+
+- Always run CI checks locally before declaring work complete: `ruff check . && ruff format --check .` for Python, and read the CI workflow file if CI fails to understand all required checks.
+
+## Debugging
+
+- When user asks about visual verification, suggest browser/UI-based steps (URL to visit, what to click, what to look for) - never suggest curl commands or log inspection as visual verification.
+
+## Workflow
+
+- After completing implementation work, automatically run the /review workflow before prompting user. Always apply database migrations after creating them.
+
 ## Important Notes
 
 - Projects feature is optional - toggle in Settings UI
